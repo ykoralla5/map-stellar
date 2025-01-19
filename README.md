@@ -73,7 +73,7 @@ Once role and database definition are done, quit `psql`. Export the database det
 $ export DATABASE_URL= export DATABASE_URL=postgres://captivecore:password@localhost:5432/captivecoredb >> ~/.bashrc
 $ stellar-horizon db init
 ```
-Provide [further configurations](https://developers.stellar.org/docs/data/horizon/admin-guide/configuring) as environment variables. We ran horizon as a Single Instance Deployment with the below configurations:
+Provide [further configurations](https://developers.stellar.org/docs/data/horizon/admin-guide/configuring) as environment variables. We ran Horizon as a Single Instance Deployment with the below configurations:
 ```
 export NETWORK=pubnet 
 export STELLAR_CORE_BINARY_PATH=/usr/bin/stellar-core
@@ -232,7 +232,7 @@ Example commands
 Kafka connect with WALs:
 Connect-distributed.properties
 Code for consumer:
-Compare ledger and transaction ciunt between original db and second db
+Compare ledger and transaction c0unt between original db and second db
 ## Exploratory analysis
 ## Testing and troubleshooting:
 ### Common errors
@@ -241,12 +241,76 @@ Postgresql login issues (peer authentication failed, grant rights to user)
 
 Common errors found, possible reasons and how to solve
 ## Useful commands
-Stellar:
+#### Stellar:
 /info
 /metrics
-Kafka:
-List of connectors
-List of topics
+
+Table and Index sizes of captive core database on PSQL:
+`SELECT relname AS "Table",
+    pg_size_pretty(pg_total_relation_size(relid)) AS "Total Size",
+    pg_size_pretty(pg_relation_size(relid)) AS "Table Size",
+    pg_size_pretty(pg_total_relation_size(relid) - pg_relation_size(relid)) AS "Index Size", ROUND((pg_total_relation_size(relid)* 100.0) / pg_database_size('captivecoredb'), 2) AS percentage_of_db_size
+FROM pg_catalog.pg_statio_user_tables
+ORDER BY pg_total_relation_size(relid) DESC;
+`
+Column size as percentages of total table size:
+`WITH column_sizes AS (
+    SELECT
+        attname AS column_name,
+        avg_width AS average_width,
+        reltuples AS row_count,
+        pg_total_relation_size(C.oid) AS total_table_size,
+        (avg_width * reltuples)::bigint AS column_estimated_size
+    FROM
+        pg_stats S
+    JOIN
+        pg_class C ON S.tablename = C.relname
+    WHERE
+        S.schemaname = '<schema-name>'  -- Replace with your schema name
+        AND S.tablename = '<table-name>'  -- Replace with your table name
+)
+SELECT
+    column_name,
+    pg_size_pretty(column_estimated_size) AS estimated_size,
+    ROUND((column_estimated_size * 100.0) / total_table_size, 2) AS percentage_of_table
+FROM
+    column_sizes
+ORDER BY
+    column_estimated_size DESC;
+`
+
+#### Kafka:
+##### Topics:
+List of topics: `bin/kafka-topics.sh --bootstrap-server localhost:9092 --list`
+Delete topics: `bin/kafka-topics.sh --bootstrap-server localhost:9092 --delete --topic <topic-name>`
+
+##### Connectors:
+Post request to create new connector: `curl -X POST -H "Content-Type: application/json" --data @<connector-config-file-name>.json http://localhost:8083/connectors`
+Changing configuration of example connector: `curl -X PUT -H "Content-Type: application/json" \
+     http://localhost:8083/connectors/<connector-name>/config \
+     -d '{
+		"connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
+    		"tasks.max": "1",
+    		"topics": "<topic-name>",
+    		"connection.url": "jdbc:postgresql://localhost:5432/<database-name>",
+    		"connection.username": "<user>",
+    		"connection.password": "<password>",
+    		"insert.mode": "upsert",
+    		"delete.enabled": "false",
+    		"primary.key.mode": "record_key",
+    		"table.name.format": "<table-name>",
+    		"schema.evolution": "basic"
+	}'`
+ 
+List of existing connectors: `curl -X GET http://localhost:8083/connectors`
+Connector status: `curl -X GET http://localhost:8083/connectors/<connector-name>/status | jq`
+Delete connector: `curl -X DELETE http://localhost:8083/connectors/captivecore-ledgers-sink-connector`
+
+Monitoring replication slots:
+Replication slot size:
+`$ SELECT slot_name, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn)) AS replication_lag_size FROM pg_replication_slots;`
+
+
 ## Additional files:
 ### Example kafka messages
 ### Diagrams
