@@ -1,0 +1,16 @@
+{
+  "name": "captivecore-ledgers-sink-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
+    "tasks.max": "1",
+    "topics": "captivecore.public.history_ledgers",
+    "connection.url": "jdbc:postgresql://localhost:5432/captivecoredb_fil",
+    "connection.username": "jdbc",
+    "connection.password": "stellar123",
+    "insert.mode": "upsert",
+    "delete.enabled": "false",
+    "primary.key.mode": "record_key",
+    "table.name.format": "ledgers",
+    "schema.evolution": "basic"
+  }
+}

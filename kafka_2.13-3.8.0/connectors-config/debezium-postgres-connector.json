@@ -1,0 +1,20 @@
+{
+  "name": "captivecoredb-postgres-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "topic.prefix": "captivecore",
+    "database.hostname": "localhost",
+    "database.port": "5432",
+    "database.user": "debezium",
+    "database.password": "stellar123",
+    "database.dbname": "captivecoredb",
+    "database.server.name": "captivecoredb_server",
+    "slot.name": "captivecore_slot",
+    "publication.name": "captivecore_publication",
+    "table.include.list": "public.history_ledgers,public.history_transactions",
+    "column.include.list": "public.history_ledgers.id,public.history_ledgers.sequence,public.history_ledgers.ledger_hash,public.history_ledgers.transaction_count,public.history_ledgers.operation_count,public.history_ledgers.closed_at,public.history_ledgers.created_at,public.history_ledgers.updated_at,public.history_ledgers.total_coins,public.history_ledgers.fee_pool,public.history_ledgers.max_tx_set_size,public.history_ledgers.protocol_version,public.history_ledgers.successful_transaction_count,public.history_ledgers.failed_transaction_count,public.history_transactions.id,public.history_transactions.ledger_sequence,public.history_transactions.operation_count,public.history_transactions.created_at,public.history_transactions.updated_at,public.history_transactions.successful,public.history_transactions.fee_charged,public.history_transactions.account,public.history_transactions.account_sequence",
+    "plugin.name": "pgoutput",
+    "snapshot.mode": "when_needed"
+  }
+}
